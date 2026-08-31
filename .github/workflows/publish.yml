@@ -1,0 +1,64 @@
+name: Publish to PyPI
+
+# Runs only when a GitHub Release is published, or when someone manually
+# triggers it from the Actions tab - never on an ordinary push, so a
+# normal commit can't accidentally publish a package.
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: Run tests
+        run: uv run pytest
+      - name: Lint
+        run: uv run ruff check .
+      - name: Check formatting
+        run: uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy src/
+
+  build:
+    name: Build distribution
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: Build package
+        run: uv build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/epad-signature-pad-hid-driver
+    permissions:
+      id-token: write # required for PyPI trusted publishing - no API token stored anywhere
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
