@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from epad_signature_pad_hid_driver.core import PenSample
+from epad_signature_pad_hid_driver.protocol import PenSample
 
 PADDING = 20
 BACKGROUND = "white"

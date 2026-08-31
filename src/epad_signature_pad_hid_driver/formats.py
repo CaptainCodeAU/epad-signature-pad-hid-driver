@@ -12,18 +12,29 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
-from epad_signature_pad_hid_driver.core import PRODUCT_ID, VENDOR_ID, PenSample
+from epad_signature_pad_hid_driver.protocol import PRODUCT_ID, VENDOR_ID, PenSample
 
 JSON_FORMAT_VERSION = "epad-pen-samples-v1"
 INKML_NAMESPACE = "http://www.w3.org/2003/InkML"
 
 
-def save_json(samples: list[PenSample], path: Path, captured_at: datetime) -> None:
-    """Save every reading as a simple, self-describing JSON document."""
+def save_json(
+    samples: list[PenSample],
+    path: Path,
+    captured_at: datetime,
+    truncated: bool = False,
+) -> None:
+    """Save every reading as a simple, self-describing JSON document.
+
+    truncated=True marks a session that was cut short by watch()'s `stop`
+    switch before the pad went idle on its own - the samples up to that
+    point are real and complete, but the signature itself may not be.
+    """
     document = {
         "format": JSON_FORMAT_VERSION,
         "device": {"vendor_id": VENDOR_ID, "product_id": PRODUCT_ID},
         "captured_at": captured_at.isoformat(),
+        "truncated": truncated,
         "sample_count": len(samples),
         "samples": [
             {
@@ -41,7 +52,7 @@ def save_json(samples: list[PenSample], path: Path, captured_at: datetime) -> No
         ],
     }
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(document, indent=2))
+    path.write_text(json.dumps(document, indent=2), encoding="utf-8")
 
 
 def _strokes(samples: list[PenSample]) -> list[list[PenSample]]:
@@ -59,8 +70,18 @@ def _strokes(samples: list[PenSample]) -> list[list[PenSample]]:
     return strokes
 
 
-def save_inkml(samples: list[PenSample], path: Path, captured_at: datetime) -> None:
-    """Save every stroke as a W3C InkML document (x, y, pressure, time-ms channels)."""
+def save_inkml(
+    samples: list[PenSample],
+    path: Path,
+    captured_at: datetime,
+    truncated: bool = False,
+) -> None:
+    """Save every stroke as a W3C InkML document (x, y, pressure, time-ms channels).
+
+    truncated=True adds a <annotation type="truncated">true</annotation> -
+    omitted entirely when False, so a normally-completed session's InkML
+    is unchanged from before this parameter existed.
+    """
     ink = ET.Element("ink", xmlns=INKML_NAMESPACE)
     ET.SubElement(ink, "annotation", type="captured_at").text = captured_at.isoformat()
     ET.SubElement(
@@ -68,6 +89,8 @@ def save_inkml(samples: list[PenSample], path: Path, captured_at: datetime) -> N
         "annotation",
         type="device",
     ).text = f"ePadLink ePad (vid=0x{VENDOR_ID:04x}, pid=0x{PRODUCT_ID:04x})"
+    if truncated:
+        ET.SubElement(ink, "annotation", type="truncated").text = "true"
 
     trace_format = ET.SubElement(ink, "traceFormat")
     ET.SubElement(trace_format, "channel", name="X", type="integer")
@@ -83,4 +106,9 @@ def save_inkml(samples: list[PenSample], path: Path, captured_at: datetime) -> N
 
     path.parent.mkdir(parents=True, exist_ok=True)
     ET.indent(ink)
-    ET.ElementTree(ink).write(path, encoding="unicode", xml_declaration=False)
+    # encoding="unicode" (the previous value here) writes text through the
+    # OS default encoding, which is cp1252 on a default Windows box -
+    # explicit "utf-8" writes real UTF-8 bytes instead; verified this
+    # produces byte-identical content on this platform and still suppresses
+    # the XML declaration (xml_declaration=False).
+    ET.ElementTree(ink).write(path, encoding="utf-8", xml_declaration=False)

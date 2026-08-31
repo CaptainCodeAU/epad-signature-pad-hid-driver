@@ -24,6 +24,33 @@ requires_pad = pytest.mark.skipif(
 )
 
 
+class FakeClock:
+    """A controllable fake clock for deterministic session.py tests.
+
+    now() stands in for time.monotonic(); sleep(dt) advances the clock
+    instead of actually blocking. session.py's capture()/watch() call
+    swappable _now()/_sleep() module functions rather than time.* directly,
+    so a test can monkeypatch those to this clock and make
+    idle_gap_seconds/cooldown_seconds mean "N ticks", deterministically -
+    real wall-clock timing in this test suite was measured to be flaky
+    (a single 60ms stall was enough to lose a sample).
+    """
+
+    def __init__(self, start: float = 0.0) -> None:
+        self.time = start
+        self.sleep_calls: list[float] = []
+
+    def now(self) -> float:
+        return self.time
+
+    def sleep(self, seconds: float) -> None:
+        self.sleep_calls.append(seconds)
+        self.time += seconds
+
+    def tick(self, seconds: float = 0.01) -> None:
+        self.time += seconds
+
+
 class FakePad:
     """Stands in for hid.device() so capture()/watch() can be tested without real hardware."""
 
@@ -32,10 +59,14 @@ class FakePad:
         reports: list[bytes],
         raise_when_exhausted: type[BaseException] | None = None,
         raise_after_seconds: float = 0.0,
+        clock: FakeClock | None = None,
     ) -> None:
         self._reports = list(reports)
         self._raise_when_exhausted = raise_when_exhausted
-        self._raise_after = time.monotonic() + raise_after_seconds
+        self._clock = clock
+        self._raise_after = (
+            clock.now() if clock else time.monotonic()
+        ) + raise_after_seconds
         self.opened_with: tuple[int, int] | None = None
         self.nonblocking_calls: list[int] = []
         self.closed = False
@@ -47,12 +78,12 @@ class FakePad:
         self.nonblocking_calls.append(value)
 
     def read(self, length: int, timeout_ms: int = 0) -> list[int]:
+        if self._clock is not None:
+            self._clock.tick()
         if self._reports:
             return list(self._reports.pop(0))
-        if (
-            self._raise_when_exhausted is not None
-            and time.monotonic() >= self._raise_after
-        ):
+        now = self._clock.now() if self._clock else time.monotonic()
+        if self._raise_when_exhausted is not None and now >= self._raise_after:
             raise self._raise_when_exhausted
         return []
 
