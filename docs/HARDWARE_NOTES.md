@@ -67,7 +67,7 @@ vendor-defined Application collection, containing:
 | bit 7 | padding bit |
 
 Total: 6 bytes, no Report ID byte — matching exactly what
-[`core.py`](../src/epad_signature_pad_hid_driver/core.py) decodes.
+[`protocol.py`](../src/epad_signature_pad_hid_driver/protocol.py) decodes.
 
 ## Live-confirmed behaviour
 
@@ -78,6 +78,38 @@ just read from the descriptor:
   pen lifts, it drops to `touch=0` with `pressure=0` at the same time.
 - Real sample rate observed: about **52 readings per second** (1,305
   samples captured over a 25-second test).
+
+## The pad is exclusive — and "unplugged" looks identical to "busy"
+
+Confirmed live on macOS, 2026-09-01, while building this driver's web demo
+(which needs to know whether it can safely share the pad with the CLI):
+
+- Opening the pad a second time **fails**, both from the *same* Python
+  process (`hid.device().open(...)` called twice) and from **two separate
+  processes** (one process holding the pad open, a second process trying
+  to open it). Both cases raise the byte-identical `OSError("open failed")`.
+- Closing the first handle and reopening afterward succeeds normally — the
+  failure is specific to a second concurrent open, not a stuck state.
+- Because both cases raise the exact same error with the exact same
+  message, this driver's `PadNotFoundError` message deliberately does
+  **not** claim to know whether the pad is unplugged or just already open
+  elsewhere — see `device.py`'s `open_pad()`.
+
+**Scope of this finding: verified on macOS only.** Whether the same
+exclusivity and identical-error behaviour holds on Windows or Linux has
+not been checked.
+
+## What happens if the pad is unplugged mid-capture — unconfirmed
+
+Unlike everything else in this document, this has **not** been verified
+live yet: what exactly `hid.device.read()` raises (if anything) when the
+pad is physically disconnected while a read is in progress or about to
+happen. The web demo's live-pad reader (`examples/web_demo/server.py`)
+and `session.py`'s `capture()`/`watch()` all handle this defensively by
+catching the general `OSError` class — the same broad type already
+established elsewhere in this codebase for pad failures — rather than a
+guessed, more specific exception type. This section will be updated with
+the real observed exception and message once that live test is run.
 
 ## Why there was nothing to copy the byte layout from
 
