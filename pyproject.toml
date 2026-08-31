@@ -29,6 +29,7 @@ dev = [
     "ruff",
     "pytest",
     "pytest-cov",
+    "pytest-timeout",  # bounds the web demo's real-socket test - it has no other way to time out
     "mypy",  # Type checker for static analysis
 ]
 
@@ -75,6 +76,7 @@ minversion = "6.0"
 addopts = "-ra -q --cov=epad_signature_pad_hid_driver --cov-report=term-missing"
 testpaths = ["tests"]
 python_files = "test_*.py"
+timeout = 30  # a real-socket SSE test can otherwise hang forever with no other bound
 
 # Mypy type checking configuration
 [tool.mypy]

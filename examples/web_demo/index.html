@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ePad live signature demo</title>
+<style>
+  body {
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    background: #f4f4f4;
+    color: #222;
+    margin: 0;
+    padding: 24px;
+  }
+  h1 { font-size: 1.2rem; margin: 0 0 4px; }
+  #status { color: #666; margin: 0 0 16px; font-size: 0.9rem; }
+  #status.error { color: #b00020; }
+  canvas {
+    background: white;
+    border: 1px solid #ccc;
+    display: block;
+    touch-action: none;
+  }
+  button {
+    margin-top: 12px;
+    padding: 8px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <h1>ePad live signature demo</h1>
+  <p id="status">Connecting...</p>
+  <canvas id="pad" width="800" height="378"></canvas>
+  <div>
+    <button id="save">Save as PNG</button>
+    <button id="clear">Clear</button>
+  </div>
+
+  <script>
+    // Pad's own logical coordinate range, read live off the HID report
+    // descriptor - see docs/HARDWARE_NOTES.md. Used only to scale pad
+    // coordinates onto the canvas; not a claim about physical inches.
+    const PAD_WIDTH = 2896;
+    const PAD_HEIGHT = 1370;
+
+    const canvas = document.getElementById("pad");
+    const ctx = canvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "black";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    let lastPoint = null;
+
+    function toCanvasPoint(x, y) {
+      return [
+        (x / PAD_WIDTH) * canvas.width,
+        (y / PAD_HEIGHT) * canvas.height,
+      ];
+    }
+
+    function drawSample(sample) {
+      if (!sample.touch) {
+        lastPoint = null;
+        return;
+      }
+      const point = toCanvasPoint(sample.x, sample.y);
+      if (lastPoint) {
+        const minWidth = 1;
+        const maxWidth = 4;
+        ctx.lineWidth = minWidth + (sample.pressure / 127) * (maxWidth - minWidth);
+        ctx.beginPath();
+        ctx.moveTo(lastPoint[0], lastPoint[1]);
+        ctx.lineTo(point[0], point[1]);
+        ctx.stroke();
+      }
+      lastPoint = point;
+    }
+
+    function setStatus(text, isError) {
+      statusEl.textContent = text;
+      statusEl.classList.toggle("error", Boolean(isError));
+    }
+
+    const source = new EventSource("/events");
+
+    source.onopen = () => setStatus("Connected. Draw on the pad.");
+    source.onerror = () => setStatus("Connection lost - retrying...", true);
+
+    source.onmessage = (event) => {
+      const sample = JSON.parse(event.data);
+      drawSample(sample);
+    };
+
+    source.addEventListener("error", (event) => {
+      // A named "error" SSE event from the server (pad disconnected or
+      // not found) is distinct from EventSource's own built-in onerror,
+      // which fires on a dropped HTTP connection.
+      try {
+        const payload = JSON.parse(event.data);
+        setStatus(`Server error: ${payload.error}`, true);
+      } catch {
+        // ignore - EventSource's built-in error events have no .data
+      }
+    });
+
+    document.getElementById("clear").addEventListener("click", () => {
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      lastPoint = null;
+    });
+
+    document.getElementById("save").addEventListener("click", () => {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "signature.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        // Whether this actually opens a "Save As" dialog, or just saves
+        // straight to a default downloads folder, depends entirely on the
+        // visitor's own browser settings - this page cannot control that.
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    });
+  </script>
+</body>
+</html>
