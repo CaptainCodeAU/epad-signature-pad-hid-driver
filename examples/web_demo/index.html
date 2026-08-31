@@ -31,18 +31,30 @@
 <body>
   <h1>ePad live signature demo</h1>
   <p id="status">Connecting...</p>
-  <canvas id="pad" width="800" height="378"></canvas>
+  <canvas id="pad" width="2896" height="1370" style="width: 8.96in; height: 5.12in;"></canvas>
   <div>
     <button id="save">Save as PNG</button>
     <button id="clear">Clear</button>
   </div>
 
   <script>
-    // Pad's own logical coordinate range, read live off the HID report
-    // descriptor - see docs/HARDWARE_NOTES.md. Used only to scale pad
-    // coordinates onto the canvas; not a claim about physical inches.
-    const PAD_WIDTH = 2896;
-    const PAD_HEIGHT = 1370;
+    // The canvas's width/height attributes above (2896x1370) match the
+    // HID descriptor's declared logical range - see docs/HARDWARE_NOTES.md.
+    // Its CSS size (8.96in x 5.12in, the descriptor's declared physical
+    // range) makes the on-screen drawing area match the pad's declared
+    // physical footprint - `in` is a real CSS unit, honored the same way
+    // any other physical length (cm, mm, pt) is.
+    //
+    // Live-measured 2026-09-01 (tracing the pad's real physical edges):
+    // the pen's raw x/y never got anywhere near that declared logical
+    // max - only up to about x=1098, y=569 (roughly 38%/42% of it). So a
+    // raw sample is NOT already a canvas pixel coordinate the way it was
+    // first assumed - it has to be scaled from this smaller, actually
+    // reachable range up to the full canvas, or strokes only ever fill
+    // a corner of the box. USABLE_X_MAX/USABLE_Y_MAX below are that
+    // measured range plus a little headroom, not the descriptor's number.
+    const USABLE_X_MAX = 1150;
+    const USABLE_Y_MAX = 600;
 
     const canvas = document.getElementById("pad");
     const ctx = canvas.getContext("2d");
@@ -57,10 +69,7 @@
     let lastPoint = null;
 
     function toCanvasPoint(x, y) {
-      return [
-        (x / PAD_WIDTH) * canvas.width,
-        (y / PAD_HEIGHT) * canvas.height,
-      ];
+      return [(x / USABLE_X_MAX) * canvas.width, (y / USABLE_Y_MAX) * canvas.height];
     }
 
     function drawSample(sample) {
@@ -70,8 +79,12 @@
       }
       const point = toCanvasPoint(sample.x, sample.y);
       if (lastPoint) {
-        const minWidth = 1;
-        const maxWidth = 4;
+        // Scaled up from render.py's 1-4px range by the same factor the
+        // canvas resolution grew (800px -> 2896px, matching the pad's
+        // real logical width), so strokes look the same relative
+        // thickness as the static PNG renderer's output.
+        const minWidth = 4;
+        const maxWidth = 14;
         ctx.lineWidth = minWidth + (sample.pressure / 127) * (maxWidth - minWidth);
         ctx.beginPath();
         ctx.moveTo(lastPoint[0], lastPoint[1]);

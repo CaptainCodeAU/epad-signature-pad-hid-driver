@@ -79,6 +79,32 @@ just read from the descriptor:
 - Real sample rate observed: about **52 readings per second** (1,305
   samples captured over a 25-second test).
 
+## The declared logical range is not the same as the reachable range
+
+Confirmed live, 2026-09-01, while building the web demo's `<canvas>`: the
+X/Y **logical range** the descriptor declares (0-2896, 0-1370 — see the
+table above) is *not* how far the pen's raw X/Y values actually go when
+tracing the pad's real physical edges corner to corner.
+
+- Two separate live captures, tracing the pad's actual physical border,
+  both measured the pen's real reachable range at only **roughly 38% of
+  the declared X max and 41% of the declared Y max** — concretely, X
+  topped out around 1098 (of a declared 2896) and Y around 569 (of a
+  declared 1370).
+- This does **not** contradict the descriptor's separately-declared
+  *physical* size (8.96in × 5.12in, in the table above) — that's a
+  different field, and hasn't itself been checked against the real
+  device with a ruler. What's confirmed here is only that the pen's own
+  raw coordinate *output* stays well inside the logical range the
+  descriptor says it's capable of reporting.
+- Practical effect: anything that assumes a raw sample's X/Y already
+  spans the full declared 0-2896 / 0-1370 range (for example, scaling it
+  directly onto a fixed-size canvas) will only ever fill a fraction of
+  that space. `examples/web_demo/index.html` scales against this
+  live-measured reachable range instead, not the declared logical max.
+- Not yet independently re-verified beyond these two captures, and not
+  checked against a second physical unit of this same pad model.
+
 ## The pad is exclusive — and "unplugged" looks identical to "busy"
 
 Confirmed live on macOS, 2026-09-01, while building this driver's web demo

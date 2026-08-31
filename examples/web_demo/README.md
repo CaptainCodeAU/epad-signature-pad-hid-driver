@@ -57,19 +57,27 @@ straight into a default downloads folder, depends entirely on the
 visitor's own browser settings - this page has no way to force one
 behavior or the other.**
 
+## The canvas's coordinate scaling
+
+The pad's raw X/Y values do **not** span the full logical range its HID
+descriptor declares (0-2896, 0-1370) - tracing the pad's actual physical
+edges only ever produces values up to roughly 38%/41% of that, confirmed
+live twice (see `docs/HARDWARE_NOTES.md`). `index.html` scales incoming
+samples against that measured reachable range (`USABLE_X_MAX`/
+`USABLE_Y_MAX` in its script), not the descriptor's declared max - using
+the declared max instead would only ever fill a corner of the canvas.
+
 ## What's actually verified here
 
-Verified live: the pad really is exclusive (second-open fails the same way
-in-process and cross-process); the SSE response format used here
-(`HTTP/1.0`, `Connection: close`, no `Content-Length`) genuinely streams
-to a real `EventSource` client with effectively no added latency;
-`daemon_threads = True` is required for the server to shut down cleanly
-while a browser tab is connected; and unplugging the pad mid-stream makes
-the reader's read call raise `OSError("read error")`, which the reader
-already catches and reports to the browser as a disconnect. See
-`docs/HARDWARE_NOTES.md` for the exact behaviour observed.
-
-Not yet verified: live pen-on-glass drawing through this page in an actual
-browser - proven by mocked/replay tests and by the server working with the
-real pad attached, but not by watching a real signature appear on the
-`<canvas>` as it's drawn.
+Verified live, including watching a real signature appear on the
+`<canvas>` as it was drawn and downloading it with the Save button:
+the pad really is exclusive (second-open fails the same way in-process
+and cross-process); the SSE response format used here (`HTTP/1.0`,
+`Connection: close`, no `Content-Length`) genuinely streams to a real
+`EventSource` client with effectively no added latency; `daemon_threads
+= True` is required for the server to shut down cleanly while a browser
+tab is connected; unplugging the pad mid-stream makes the reader's read
+call raise `OSError("read error")`, which the reader already catches and
+reports to the browser as a disconnect; and the coordinate scaling above
+makes a stroke that reaches the pad's real edges also reach the canvas's
+edges. See `docs/HARDWARE_NOTES.md` for the exact behaviour observed.
