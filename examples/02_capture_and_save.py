@@ -5,14 +5,17 @@
                     store it in a database that can't hold images
 - signature.inkml   the same data in the W3C InkML standard, for other tools
 
+Needs a real pad plugged in.
+
 Run with:
-    uv run python examples/basic_capture.py
+    uv run python examples/02_capture_and_save.py
 """
 
 from datetime import datetime
 from pathlib import Path
 
 from epad_signature_pad_hid_driver import (
+    PenSample,
     capture,
     render_signature,
     save_inkml,
@@ -25,7 +28,7 @@ OUTPUT_DIR = Path("output")
 def main() -> None:
     print("Draw on the pad now - capturing for 5 seconds...")
     captured_at = datetime.now()
-    samples = []
+    samples: list[PenSample] = []
     capture(seconds=5.0, on_sample=samples.append)
 
     OUTPUT_DIR.mkdir(exist_ok=True)
