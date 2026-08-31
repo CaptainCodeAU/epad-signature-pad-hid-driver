@@ -1,13 +1,15 @@
 """Tests for examples/web_demo/server.py.
 
-Live pen-on-glass drawing through a real browser is NOT covered here -
-that needs real hardware to verify end-to-end (see
-examples/web_demo/README.md). These tests prove the plumbing: SSE frame
-formatting, fan-out and backpressure, replay playback, and exactly one
-real-socket test of the HTTP/SSE surface (index page, health endpoint, a
-bounded read of live frames, and that a disconnected client's queue is
-cleaned up) - deliberately just one, to keep this suite from hanging or
-flaking on socket timing.
+Live pen-on-glass drawing through a real browser is NOT covered by this
+automated suite - that's inherently manual (a real pad, a real browser,
+a real hand). It HAS been verified by hand, once, against real hardware:
+see the "What's actually verified here" section of
+examples/web_demo/README.md. These tests instead prove the plumbing: SSE
+frame formatting, fan-out and backpressure, replay playback, and exactly
+one real-socket test of the HTTP/SSE surface (index page, health
+endpoint, a bounded read of live frames, and that a disconnected client's
+queue is cleaned up) - deliberately just one, to keep this suite from
+hanging or flaking on socket timing.
 
 server.py lives outside the installed package (examples/ is not on
 sys.path and isn't a Python package), so it's loaded here by file path,

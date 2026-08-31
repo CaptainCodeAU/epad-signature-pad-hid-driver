@@ -59,6 +59,11 @@ vendor-defined Application collection, containing:
 | bytes 1-2 | X — Generic Desktop usage `0x30`, 16-bit, logical range 0-2896, physical max 8960 (units: thousandths of an inch, so a declared width of about 8.96 in) |
 | bytes 3-4 | Y — Generic Desktop usage `0x31`, 16-bit, logical range 0-1370, physical max 5120 thousandths-inch (about 5.12 in declared height) |
 
+These are the descriptor's own *declared* numbers. The pen's real reachable
+values are noticeably smaller than the declared logical range — see
+["The declared logical range is not the same as the reachable range"](#the-declared-logical-range-is-not-the-same-as-the-reachable-range)
+below.
+
 **Byte 5 — pressure:**
 
 | Bits | Field |

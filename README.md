@@ -225,7 +225,7 @@ pointed at without code changes — see
 
 | Doc | What's in it |
 |---|---|
-| [`docs/HARDWARE_NOTES.md`](docs/HARDWARE_NOTES.md) | The hardware backstory: the pad's device identity, its full HID report descriptor and how it was read, every live-confirmed behaviour (sample rate, the pad's exclusivity, what unplugging it mid-read raises), and why no existing vendor document could have supplied the byte layout this driver uses. |
+| [`docs/HARDWARE_NOTES.md`](docs/HARDWARE_NOTES.md) | The hardware backstory: the pad's device identity, its full HID report descriptor and how it was read, every live-confirmed behaviour (sample rate, the pad's exclusivity, what unplugging it mid-read raises, and why the pen's real reachable X/Y range is smaller than the descriptor's declared max), and why no existing vendor document could have supplied the byte layout this driver uses. |
 | [`docs/ADDING_A_MODEL.md`](docs/ADDING_A_MODEL.md) | A step-by-step guide for adding support for a different pad model from the same vendor later, without guessing. |
 | [`examples/README.md`](examples/README.md) | An index of the numbered example scripts and which to read first. |
 | [`examples/web_demo/README.md`](examples/web_demo/README.md) | How to run the live browser demo, its `--replay` flags, and what it does and doesn't verify. |
