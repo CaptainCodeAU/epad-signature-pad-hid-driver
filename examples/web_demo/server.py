@@ -122,10 +122,11 @@ def run_live_reader(
     in-process and cross-process, so this and any other pad-holding
     process (the CLI's own `watch`, for instance) can't run at once.
 
-    What exactly d.read() raises if the pad is unplugged mid-stream is
-    NOT verified live yet (see HARDWARE_NOTES.md) - caught here as a
-    plain OSError, the same broad type this package already uses
-    elsewhere for pad failures, rather than guessing a more specific one.
+    Verified live: unplugging the pad mid-stream makes d.read() raise
+    OSError("read error") on the pad's own handle (see HARDWARE_NOTES.md).
+    Caught here as a plain OSError - the same broad type this package
+    already uses elsewhere for pad failures - which already covers that
+    specific message without needing narrower handling.
     """
     try:
         d = open_pad(vendor_id, product_id)

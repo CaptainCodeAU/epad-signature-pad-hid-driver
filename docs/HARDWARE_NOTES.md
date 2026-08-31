@@ -99,17 +99,32 @@ Confirmed live on macOS, 2026-09-01, while building this driver's web demo
 exclusivity and identical-error behaviour holds on Windows or Linux has
 not been checked.
 
-## What happens if the pad is unplugged mid-capture — unconfirmed
+## What happens if the pad is unplugged mid-capture
 
-Unlike everything else in this document, this has **not** been verified
-live yet: what exactly `hid.device.read()` raises (if anything) when the
-pad is physically disconnected while a read is in progress or about to
-happen. The web demo's live-pad reader (`examples/web_demo/server.py`)
-and `session.py`'s `capture()`/`watch()` all handle this defensively by
-catching the general `OSError` class — the same broad type already
-established elsewhere in this codebase for pad failures — rather than a
-guessed, more specific exception type. This section will be updated with
-the real observed exception and message once that live test is run.
+Confirmed live on macOS, 2026-09-01: physically unplugging the pad while
+`d.read()` is being called in a loop makes it raise `OSError("read error")`
+on the very next read attempt — a different message from the `"open
+failed"` seen when opening a not-present or already-open pad (see above),
+so the two situations *can* in principle be told apart by message text,
+though this driver doesn't currently do so anywhere.
+
+- Every subsequent `d.read()` call on that same, now-broken handle keeps
+  raising the identical `OSError("read error")` — it does not recover on
+  its own once the pad is plugged back in.
+- `d.close()` on that broken handle still succeeds without raising.
+- Plugging the pad back in and opening a **brand-new** handle (a fresh
+  `open_pad()`/`hid.device().open(...)` call) works normally right away —
+  recovery requires reopening the device, not continuing to use the old
+  handle.
+
+This matches what `session.py`'s `capture()`/`watch()` and the web demo's
+live-pad reader (`examples/web_demo/server.py`) already do: both catch the
+general `OSError` class around each read (which `OSError("read error")` is
+an instance of) rather than a narrower type, so this confirmed behaviour
+required no code change — only this documentation update.
+
+**Scope of this finding: verified on macOS only,** the same as the
+exclusivity finding above.
 
 ## Why there was nothing to copy the byte layout from
 

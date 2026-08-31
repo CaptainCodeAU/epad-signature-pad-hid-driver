@@ -27,12 +27,18 @@ Without a pad, replay a saved capture instead - `examples/sample_capture.json`
 produced:
 
 ```bash
-uv run python examples/web_demo/server.py --replay examples/sample_capture.json --replay-loop
+uv run python examples/web_demo/server.py --replay examples/sample_capture.json --replay-loop --no-delay
 ```
 
+`--no-delay` is there because `sample_capture.json` starts about 5 seconds
+in (the real gap between starting the capture and actually touching the
+pen down) - without it, `--replay-loop` faithfully replays that same
+5-second pause before drawing starts on *every* loop pass, which is more
+realistic but makes a first look at the demo feel like nothing is
+happening. Drop `--no-delay` if you want the real recorded pacing instead.
+
 Other flags: `--host`/`--port` to change where it listens, `--replay-speed 2.0`
-to replay twice as fast, `--no-delay` to ignore the recorded timing entirely
-and replay every point immediately.
+to replay twice as fast (ignored when `--no-delay` is also given).
 
 ## The pad is exclusive
 
@@ -51,19 +57,19 @@ straight into a default downloads folder, depends entirely on the
 visitor's own browser settings - this page has no way to force one
 behavior or the other.**
 
-## What's actually verified here, and what isn't
+## What's actually verified here
 
-Verified live before this was written: the pad really is exclusive
-(second-open fails the same way in-process and cross-process); the SSE
-response format used here (`HTTP/1.0`, `Connection: close`, no
-`Content-Length`) genuinely streams to a real `EventSource` client with
-effectively no added latency; `daemon_threads = True` is required for the
-server to shut down cleanly while a browser tab is connected.
+Verified live: the pad really is exclusive (second-open fails the same way
+in-process and cross-process); the SSE response format used here
+(`HTTP/1.0`, `Connection: close`, no `Content-Length`) genuinely streams
+to a real `EventSource` client with effectively no added latency;
+`daemon_threads = True` is required for the server to shut down cleanly
+while a browser tab is connected; and unplugging the pad mid-stream makes
+the reader's read call raise `OSError("read error")`, which the reader
+already catches and reports to the browser as a disconnect. See
+`docs/HARDWARE_NOTES.md` for the exact behaviour observed.
 
-**Not yet verified live: what exactly happens if the pad is unplugged
-while this server is running.** The reader thread catches a plain
-`OSError` around the read call and reports it to the browser as a
-disconnect - the same broad handling this project already uses elsewhere
-for pad failures - but the *exact* exception hidapi raises in that
-specific situation hasn't been confirmed against real hardware yet. See
-`docs/HARDWARE_NOTES.md`.
+Not yet verified: live pen-on-glass drawing through this page in an actual
+browser - proven by mocked/replay tests and by the server working with the
+real pad attached, but not by watching a real signature appear on the
+`<canvas>` as it's drawn.
