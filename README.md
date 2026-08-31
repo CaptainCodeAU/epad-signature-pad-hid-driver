@@ -3,6 +3,19 @@
 Unofficial Python driver for the ePadLink "ePad" USB signature pad (VID `0x04DF`,
 PID `0x0012`), talking to it directly over raw USB HID.
 
+- [What is this device?](#what-is-this-device)
+- [The problem](#the-problem)
+- [How this driver solves it](#how-this-driver-solves-it)
+- [Install](#install)
+- [Usage](#usage)
+- [What `watch` saves](#what-watch-saves)
+- [Handling errors](#handling-errors)
+- [How it works](#how-it-works)
+- [Library layout](#library-layout)
+- [Documentation](#documentation)
+- [Development](#development)
+- [License](#license)
+
 ## What is this device?
 
 ![ePadLink ePad signature pad](docs/ePadLink.jpg)
@@ -152,7 +165,7 @@ Every exception this package raises on purpose is an `EpadError`:
 
 | Exception | Also a... | Raised when |
 |---|---|---|
-| `PadNotFoundError` | `OSError` | The pad couldn't be opened — not plugged in, or already open in another program (these two cases are not distinguishable — see `docs/HARDWARE_NOTES.md`) |
+| `PadNotFoundError` | `OSError` | The pad couldn't be opened — not plugged in, or already open in another program (these two cases are not distinguishable — see [`docs/HARDWARE_NOTES.md`](docs/HARDWARE_NOTES.md)) |
 | `EmptyCaptureError` | `ValueError` | `render_signature()` was given zero pen-down samples |
 | `InvalidFormatError` | `ValueError` | A `.json`/`.inkml` file is malformed, or its extension isn't recognized |
 
@@ -181,6 +194,11 @@ This layout was read directly from the pad's own HID report descriptor
 See [`src/epad_signature_pad_hid_driver/protocol.py`](src/epad_signature_pad_hid_driver/protocol.py)
 for the full decode (and its reverse, `encode_report()`, used by the file loaders).
 
+For the actual descriptor bytes, how they were read, what's confirmed by
+live testing versus what's still unconfirmed, and why no existing vendor
+document could have supplied this layout, see
+[`docs/HARDWARE_NOTES.md`](docs/HARDWARE_NOTES.md).
+
 ## Library layout
 
 The package is split by job, not one big file:
@@ -202,6 +220,15 @@ already exported, plus the new ones (`encode_report`, `load_json`, `load_inkml`,
 take optional `vendor_id`/`product_id` parameters, so a different pad model can be
 pointed at without code changes — see
 [`docs/ADDING_A_MODEL.md`](docs/ADDING_A_MODEL.md) if you're adding support for one.
+
+## Documentation
+
+| Doc | What's in it |
+|---|---|
+| [`docs/HARDWARE_NOTES.md`](docs/HARDWARE_NOTES.md) | The hardware backstory: the pad's device identity, its full HID report descriptor and how it was read, every live-confirmed behaviour (sample rate, the pad's exclusivity, what unplugging it mid-read raises), and why no existing vendor document could have supplied the byte layout this driver uses. |
+| [`docs/ADDING_A_MODEL.md`](docs/ADDING_A_MODEL.md) | A step-by-step guide for adding support for a different pad model from the same vendor later, without guessing. |
+| [`examples/README.md`](examples/README.md) | An index of the numbered example scripts and which to read first. |
+| [`examples/web_demo/README.md`](examples/web_demo/README.md) | How to run the live browser demo, its `--replay` flags, and what it does and doesn't verify. |
 
 ## Development
 
