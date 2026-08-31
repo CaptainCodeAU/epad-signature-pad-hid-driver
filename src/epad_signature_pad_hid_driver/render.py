@@ -6,6 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from epad_signature_pad_hid_driver.exceptions import EmptyCaptureError
 from epad_signature_pad_hid_driver.protocol import PenSample
 
 PADDING = 20
@@ -20,12 +21,13 @@ def render_signature(samples: list[PenSample], path: Path) -> None:
     """Render pen-down strokes in samples to a PNG at path.
 
     Separate strokes (pen lifted and touched down again) are drawn as
-    separate lines, never connected. Raises ValueError if nothing was
-    touched during the capture.
+    separate lines, never connected. Raises EmptyCaptureError (also a
+    ValueError, for callers written against the earlier plain-ValueError
+    contract) if nothing was touched during the capture.
     """
     touched = [s for s in samples if s.touch]
     if not touched:
-        raise ValueError("No pen-down samples to render")
+        raise EmptyCaptureError("No pen-down samples to render")
 
     min_x = min(s.x for s in touched)
     max_x = max(s.x for s in touched)
