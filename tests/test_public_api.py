@@ -66,6 +66,19 @@ def test_new_exceptions_are_exported() -> None:
     assert issubclass(pkg.InvalidFormatError, pkg.EpadError)
 
 
+NEW_NAMES = ["encode_report", "load_json", "load_inkml", "PadConnection"]
+
+
+def test_every_new_name_still_imports() -> None:
+    """The additive names this reorg promised alongside the legacy ones -
+    load_json/load_inkml were missed here once already (caught only by
+    hand, after the reorg was believed complete), so this is the
+    regression test for that specific mistake."""
+    for name in NEW_NAMES:
+        assert hasattr(pkg, name), f"new public name missing: {name}"
+        assert name in pkg.__all__, f"{name} is importable but missing from __all__"
+
+
 def test_empty_capture_error_is_raised_through_the_public_render_signature() -> None:
     import pytest
 

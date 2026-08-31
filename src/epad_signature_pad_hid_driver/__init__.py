@@ -12,7 +12,12 @@ from epad_signature_pad_hid_driver.exceptions import (
     InvalidFormatError,
     PadNotFoundError,
 )
-from epad_signature_pad_hid_driver.formats import save_inkml, save_json
+from epad_signature_pad_hid_driver.formats import (
+    load_inkml,
+    load_json,
+    save_inkml,
+    save_json,
+)
 from epad_signature_pad_hid_driver.protocol import (
     PRODUCT_ID,
     VENDOR_ID,
@@ -37,6 +42,8 @@ __all__ = [
     "capture",
     "decode_report",
     "encode_report",
+    "load_inkml",
+    "load_json",
     "open_pad",
     "render_signature",
     "run",
