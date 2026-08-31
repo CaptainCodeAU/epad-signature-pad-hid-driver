@@ -1,11 +1,14 @@
 """Command-line interface for epad_signature_pad_hid_driver."""
 
 import sys
+from pathlib import Path
 
-from epad_signature_pad_hid_driver import __version__, capture, run
+from epad_signature_pad_hid_driver import PenSample, __version__, capture, run, watch
+
+DEFAULT_OUTPUT_DIR = Path("output")
 
 
-def _print_sample(sample) -> None:  # noqa: ANN001
+def _print_sample(sample: PenSample) -> None:
     print(
         f"x={sample.x:5d} y={sample.y:5d} pressure={sample.pressure:3d} "
         f"touch={int(sample.touch)} in_range={int(sample.in_range)} "
@@ -30,7 +33,12 @@ def main() -> int:
         print("\nUsage: epad-signature-pad-hid-driver [command]")
         print("\nCommands:")
         print("  (none)             Confirm the pad is connected")
-        print("  capture [seconds]  Print decoded pen samples for N seconds (default 15)")
+        print(
+            "  capture [seconds]  Print decoded pen samples for N seconds (default 15)"
+        )
+        print(
+            "  watch [idle_gap]   Auto-save a signature on every pen session (default 3s idle gap)"
+        )
         print("  --version, -v      Show version")
         print("  --help, -h         Show this help message")
         return 0
@@ -42,8 +50,24 @@ def main() -> int:
         print(f"Done. Received {count} reports.")
         return 0
 
-    result = run()
-    print(result)
+    if len(sys.argv) > 1 and sys.argv[1] == "watch":
+        idle_gap = float(sys.argv[2]) if len(sys.argv) > 2 else 3.0
+        DEFAULT_OUTPUT_DIR.mkdir(exist_ok=True)
+        print(
+            f"Watching for pen touches. A session ends after {idle_gap:.0f}s of no touching."
+        )
+        print(f"Saving to {DEFAULT_OUTPUT_DIR}/. Press Ctrl+C to stop.")
+        try:
+            for watch_result in watch(DEFAULT_OUTPUT_DIR, idle_gap_seconds=idle_gap):
+                print(
+                    f"Saved {watch_result.png_path.name} "
+                    f"(+ .json, .inkml) - {len(watch_result.samples)} samples"
+                )
+        except KeyboardInterrupt:
+            print("\nStopped.")
+        return 0
+
+    print(run())
     return 0
 
 

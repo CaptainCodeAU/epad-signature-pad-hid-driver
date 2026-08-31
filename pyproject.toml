@@ -5,9 +5,9 @@ build-backend = "hatchling.build"
 [project]
 name = "epad_signature_pad_hid_driver"
 version = "0.1.0"
-description = "A fantastic Python project." # User should update this
+description = "Unofficial Python driver for ePadLink signature pads over raw USB HID -- no vendor driver required."
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }, # User should update this
+    { name = "CaptainCodeAU" },
 ]
 readme = "README.md"
 requires-python = ">=3.13, <3.14"
@@ -21,6 +21,7 @@ classifiers = [
 dependencies = [
     # Add core runtime dependencies here
     "hidapi>=0.15.0",
+    "pillow>=12.3.0",
 ]
 
 [project.optional-dependencies]
@@ -32,8 +33,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/CaptainCodeAU/epad_signature_pad_hid_driver" # Optional: Update URL
-Repository = "https://github.com/CaptainCodeAU/epad_signature_pad_hid_driver" # Optional: Update URL
+Homepage = "https://github.com/CaptainCodeAU/epad-signature-pad-hid-driver"
+Repository = "https://github.com/CaptainCodeAU/epad-signature-pad-hid-driver"
 
 [project.scripts]
 epad-signature-pad-hid-driver = "epad_signature_pad_hid_driver.cli:main"
@@ -87,3 +88,7 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "hid"
+ignore_missing_imports = true
