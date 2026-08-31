@@ -20,6 +20,7 @@ classifiers = [
 ]
 dependencies = [
     # Add core runtime dependencies here
+    "hidapi>=0.15.0",
 ]
 
 [project.optional-dependencies]
